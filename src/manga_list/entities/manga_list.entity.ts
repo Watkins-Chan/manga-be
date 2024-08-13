@@ -1,9 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, BeforeInsert, PrimaryColumn, Column } from 'typeorm';
 
 @Entity('manga_list')
 export class MangaList {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn()
+  id: string;
 
   @Column()
   title: string;
@@ -16,4 +16,9 @@ export class MangaList {
 
   @Column()
   cover_image: string;
+
+  @BeforeInsert()
+  generateId() {
+    this.id = Math.random().toString(36).substring(2, 10);
+  }
 }
