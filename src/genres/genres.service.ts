@@ -11,7 +11,6 @@ export class GenresService {
 
   // Create a new genre
   async create(createGenreDto: any): Promise<Genre> {
-    // console.log('createGenreDto', createGenreDto);
     const createdGenre = new this.genreModel(createGenreDto);
     return createdGenre.save();
   }

@@ -5,7 +5,9 @@ import { GenresModule } from './genres/genres.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://127.0.0.1:27017/manga_db'),
+    MongooseModule.forRoot(
+      'mongodb+srv://minhuy2303:Onepiece2302!@cluster0.allp9.mongodb.net/manga_db?retryWrites=true&w=majority',
+    ),
     MangasModule,
     GenresModule,
   ],

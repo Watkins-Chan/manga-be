@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type GenreDocument = Genre & Document;
 
-@Schema({ collection: 'genre' })
+@Schema({ collection: 'genres' })
 export class Genre {
   @Prop({ required: true })
   genre_name: string;
