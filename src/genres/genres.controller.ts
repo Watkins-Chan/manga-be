@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   Controller,
   Get,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { GenresService } from './genres.service';
 import { Genre } from './schemas/genre.schema';
+import { PaginatedResponse } from './interfaces/genres.interface';
 
 @Controller('genres')
 export class GenresController {
@@ -18,10 +20,6 @@ export class GenresController {
   // Create a new genre
   @Post()
   async create(@Body() createGenreDto: any): Promise<Genre> {
-    console.log(
-      '🚀 ~ GenresController ~ create ~ createGenreDto:',
-      createGenreDto,
-    );
     return this.genresService.create(createGenreDto);
   }
 
@@ -30,9 +28,9 @@ export class GenresController {
   async findAll(
     @Query('currentPage') page: string,
     @Query('pageSize') limit: string,
-  ): Promise<Genre[]> {
+  ): Promise<PaginatedResponse> {
     const currentPage = parseInt(page, 10) || 1;
-    const pageSize = parseInt(limit, 10) || 10; // Giá trị mặc định là 10
+    const pageSize = parseInt(limit, 10) || 10;
     return this.genresService.findAll(currentPage, pageSize);
   }
 

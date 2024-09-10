@@ -1,7 +1,9 @@
+/* eslint-disable prettier/prettier */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Genre, GenreDocument } from './schemas/genre.schema';
+import { GenreDocument, Genre } from './schemas/genre.schema';
+import { PaginatedResponse } from './interfaces/genres.interface';
 
 @Injectable()
 export class GenresService {
@@ -19,9 +21,33 @@ export class GenresService {
   async findAll(
     currentPage: number = 1,
     pageSize: number = 10,
-  ): Promise<Genre[]> {
+  ): Promise<PaginatedResponse> {
     const skip = (currentPage - 1) * pageSize;
-    return this.genreModel.find().skip(skip).limit(pageSize).exec();
+    
+    const totalElements = await this.genreModel.countDocuments();
+    
+    const totalPages = Math.ceil(totalElements / pageSize);
+    if (currentPage > totalPages) {
+      currentPage = 1;
+    }
+  
+    const data = await this.genreModel
+      .find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .exec();
+  
+    return {
+      data,
+      timestamp: new Date().toISOString(),
+      page: {
+        _totalElements: totalElements,
+        _currentPage: currentPage,
+        _pageSize: pageSize,
+        _totalPages: totalPages,
+      },
+    };
   }
 
   // Get one genre by id
