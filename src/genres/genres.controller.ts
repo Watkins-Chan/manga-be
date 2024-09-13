@@ -28,10 +28,14 @@ export class GenresController {
   async findAll(
     @Query('currentPage') page: string,
     @Query('pageSize') limit: string,
+    @Query('q') q: string,
+    @Query('sortBy') sortBy: string,
+    @Query('sortOrder') sortOrder: string
   ): Promise<PaginatedResponse> {
     const currentPage = parseInt(page, 10) || 1;
     const pageSize = parseInt(limit, 10) || 10;
-    return this.genresService.findAll(currentPage, pageSize);
+    const sortOrderValue = sortOrder || 'desc';
+    return this.genresService.findAll(currentPage, pageSize, q, sortBy, sortOrderValue);
   }
 
   // Get one genre by id

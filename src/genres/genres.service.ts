@@ -21,19 +21,44 @@ export class GenresService {
   async findAll(
     currentPage: number = 1,
     pageSize: number = 10,
+    q: string = '',
+    sortBy: string = 'createdAt',
+    sortOrder: string = 'asc'
   ): Promise<PaginatedResponse> {
     const skip = (currentPage - 1) * pageSize;
+    const searchQuery = q
+    ? {
+      $or: [
+        { genre_name: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+      ],
+    }
+    : {};
     
-    const totalElements = await this.genreModel.countDocuments();
+    const totalElements = await this.genreModel.countDocuments(searchQuery);
     
     const totalPages = Math.ceil(totalElements / pageSize);
+
     if (currentPage > totalPages) {
       currentPage = 1;
     }
   
+    let sortOptions: any = {}
+    switch (sortBy) {
+      case 'createdAt':
+        sortOptions = { createdAt: sortOrder === 'asc' ? 1 : -1 }; 
+        break;
+      case 'name':
+        sortOptions = { genre_name: sortOrder === 'asc' ? 1 : -1 };
+        break;
+      default:
+        sortOptions = { createdAt: -1 };
+        break;
+    }
+
     const data = await this.genreModel
-      .find()
-      .sort({ createdAt: -1 })
+      .find(searchQuery)
+      .sort(sortOptions)
       .skip(skip)
       .limit(pageSize)
       .exec();
