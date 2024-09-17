@@ -1,9 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException  } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { GenreDocument, Genre } from './schemas/genre.schema';
 import { PaginatedResponse } from './interfaces/genres.interface';
+import * as XLSX from 'xlsx';
 
 @Injectable()
 export class GenresService {
@@ -11,6 +12,27 @@ export class GenresService {
     @InjectModel(Genre.name) private genreModel: Model<GenreDocument>,
   ) {}
 
+  async uploadGenresFromExcel(file: Express.Multer.File): Promise<any> {
+    if (!file || !file.buffer) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    for (const row of data as Genre[]) {
+      const { genre_name, description } = row;
+      if (genre_name) {
+        await this.create({ genre_name, description });
+      }
+    }
+
+    return { message: 'Genres uploaded and saved successfully' };
+  }
+  
   // Create a new genre
   async create(createGenreDto: any): Promise<Genre> {
     const createdGenre = new this.genreModel(createGenreDto);
@@ -28,11 +50,10 @@ export class GenresService {
     const skip = (currentPage - 1) * pageSize;
     const searchQuery = q
     ? {
-      $or: [
-        { genre_name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-      ],
-    }
+        $or: [
+          { genre_name: { $regex: q, $options: 'i' } },
+        ],
+      }
     : {};
     
     const totalElements = await this.genreModel.countDocuments(searchQuery);

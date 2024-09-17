@@ -8,7 +8,11 @@ import {
   Body,
   Param,
   Query,
+  UploadedFile,
+  UseInterceptors
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+
 import { GenresService } from './genres.service';
 import { Genre } from './schemas/genre.schema';
 import { PaginatedResponse } from './interfaces/genres.interface';
@@ -57,5 +61,12 @@ export class GenresController {
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<Genre> {
     return this.genresService.delete(id);
+  }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    const result = await this.genresService.uploadGenresFromExcel(file);
+    return result;
   }
 }
