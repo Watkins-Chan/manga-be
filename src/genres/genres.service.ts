@@ -124,4 +124,9 @@ export class GenresService {
     }
     return deletedGenre;
   }
+
+  async deleteMany(): Promise<{data: any, timestamp: Date}> {
+    await this.genreModel.deleteMany()
+    return {data: {}, timestamp: new Date()}
+  }
 }

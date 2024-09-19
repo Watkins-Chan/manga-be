@@ -9,7 +9,7 @@ import {
   Param,
   Query,
   UploadedFile,
-  UseInterceptors
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
@@ -68,5 +68,11 @@ export class GenresController {
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     const result = await this.genresService.uploadGenresFromExcel(file);
     return result;
+  }
+
+  @Delete()
+  async deleteMany() {
+    const result = await this.genresService.deleteMany();
+    return result
   }
 }
