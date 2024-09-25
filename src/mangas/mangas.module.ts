@@ -1,8 +1,8 @@
 /* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { MangasService } from './mangas.service';
 import { MangasController } from './mangas.controller';
+import { MangasService } from './mangas.service';
+import { MongooseModule } from '@nestjs/mongoose';
 import { Manga, MangaSchema } from './schemas/manga.schema';
 
 @Module({
@@ -10,6 +10,6 @@ import { Manga, MangaSchema } from './schemas/manga.schema';
     MongooseModule.forFeature([{ name: Manga.name, schema: MangaSchema }]),
   ],
   controllers: [MangasController],
-  providers: [MangasService],
+  providers: [MangasService]
 })
 export class MangasModule {}
