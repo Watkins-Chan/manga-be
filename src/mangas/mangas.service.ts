@@ -38,6 +38,37 @@ export class MangasService {
     return { message: 'Mangas uploaded and saved successfully' };
   }
 
+  // async uploadMangasFromExcel(file: Express.Multer.File): Promise<any> {
+  //   if (!file || !file.buffer) {
+  //     throw new BadRequestException('No file uploaded');
+  //   }
+  
+  //   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  //   const sheetName = workbook.SheetNames[0];
+  //   const worksheet = workbook.Sheets[sheetName];
+  
+  //   const data = XLSX.utils.sheet_to_json(worksheet);
+  
+  //   const bulkInsertData = data.map((row: Manga) => {
+  //     const { name, description, status, genres, author, image } = row;
+  
+  //     const transformGenres = Array.isArray(genres)
+  //       ? genres.map(genre => ({ name: genre, _id: new mongoose.Types.ObjectId() }))
+  //       : [];
+  
+  //     const transformAuthor = { name: author, _id: new mongoose.Types.ObjectId() };
+  //     const transformImage = { url: image, _id: new mongoose.Types.ObjectId() };
+  
+  //     return { name, description, status, genres: transformGenres, author: transformAuthor, image: transformImage };
+  //   });
+  
+  //   // Thực hiện bulk insert
+  //   if (bulkInsertData.length) {
+  //     await this.mangaModel.insertMany(bulkInsertData); // Assuming this.mangaModel is the mongoose model for Manga
+  //   }
+  
+  //   return { message: 'Mangas uploaded and saved successfully' };
+  // }
   async create(createMangaDto: any): Promise<Manga> {
     const createdManga = new this.mangaModel(createMangaDto);
     return createdManga.save();
