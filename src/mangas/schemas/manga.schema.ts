@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { IsString } from 'class-validator';
-import { Author } from 'src/authors/schemas/author.schema';
 import { Genre } from 'src/genres/schemas/genre.schema';
 
 export type MangaDocument = Manga &
@@ -29,7 +28,7 @@ export class Manga {
   genres: Genre[];
 
   @Prop({ required: true })
-  author: Author;
+  author: string;
 
   @Prop()
   image?: Image;
