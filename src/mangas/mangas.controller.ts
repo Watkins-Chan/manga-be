@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Query,
   UploadedFile,
@@ -48,4 +49,11 @@ export class MangasController {
     const result = await this.mangasService.uploadMangasFromExcel(file);
     return result;
   }
+
+  @Delete()
+  async deleteMany() {
+    const result = await this.mangasService.deleteMany();
+    return result
+  }
+
 }

@@ -127,4 +127,9 @@ export class MangasService {
       },
     };
   }
+
+  async deleteMany(): Promise<{data: any, timestamp: Date}> {
+    await this.mangaModel.deleteMany()
+    return {data: {}, timestamp: new Date()}
+  }
 }
