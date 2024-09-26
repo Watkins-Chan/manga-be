@@ -17,6 +17,9 @@ import { GenresService } from './genres.service';
 import { Genre } from './schemas/genre.schema';
 import { PaginatedResponse } from './interfaces/genres.interface';
 
+const DEFAULT_PAGE_SIZE = 10
+const DEFAULT_CURRENT_PAGE = 1
+
 @Controller('genres')
 export class GenresController {
   constructor(private readonly genresService: GenresService) {}
@@ -36,8 +39,8 @@ export class GenresController {
     @Query('sortBy') sortBy: string,
     @Query('sortOrder') sortOrder: string
   ): Promise<PaginatedResponse> {
-    const currentPage = parseInt(page, 10) || 1;
-    const pageSize = parseInt(limit, 10) || 10;
+    const currentPage = parseInt(page, 10) || DEFAULT_CURRENT_PAGE;
+    const pageSize = parseInt(limit, 10) || DEFAULT_PAGE_SIZE;
     const sortOrderValue = sortOrder || 'desc';
     return this.genresService.findAll(currentPage, pageSize, q, sortBy, sortOrderValue);
   }

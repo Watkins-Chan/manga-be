@@ -14,6 +14,8 @@ import { PaginatedResponse } from './interfaces/mangas.interface';
 import { MangasService } from './mangas.service';
 import { Manga } from './schemas/manga.schema';
 
+const DEFAULT_PAGE_SIZE = 12
+const DEFAULT_CURRENT_PAGE = 1
 @Controller('mangas')
 export class MangasController {
   constructor(private readonly mangasService: MangasService) {}
@@ -26,8 +28,8 @@ export class MangasController {
     @Query('sortBy') sortBy: string,
     @Query('sortOrder') sortOrder: string,
   ): Promise<PaginatedResponse> {
-    const currentPage = parseInt(page, 10) || 1;
-    const pageSize = parseInt(limit, 10) || 10;
+    const currentPage = parseInt(page, 10) || DEFAULT_CURRENT_PAGE;
+    const pageSize = parseInt(limit, 10) || DEFAULT_PAGE_SIZE;
     const sortOrderValue = sortOrder || 'desc';
     return this.mangasService.findAll(
       currentPage,
