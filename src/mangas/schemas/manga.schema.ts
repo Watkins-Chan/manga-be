@@ -1,5 +1,4 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { IsString } from 'class-validator';
 import { Genre } from 'src/genres/schemas/genre.schema';
 
 export type MangaDocument = Manga &
@@ -7,11 +6,6 @@ export type MangaDocument = Manga &
     createdAt: Date;
     updatedAt: Date;
   };
-
-class Image {
-  @IsString()
-  name: string;
-}
 
 @Schema({ collection: 'list', timestamps: true })
 export class Manga {
@@ -21,17 +15,17 @@ export class Manga {
   @Prop()
   description?: string;
 
-  @Prop({ required: true })
+  @Prop()
   status: string;
 
-  @Prop({ required: true })
+  @Prop()
   genres: Genre[];
 
-  @Prop({ required: true })
+  @Prop()
   author: string;
 
   @Prop()
-  image?: Image;
+  imageUrl: string;
 }
 
 export const MangaSchema = SchemaFactory.createForClass(Manga);

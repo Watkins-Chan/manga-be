@@ -8,11 +8,15 @@ import {
   Query,
   UploadedFile,
   UseInterceptors,
+  // ParseFilePipe,
+  // FileTypeValidator, MaxFileSizeValidator,
+  HttpException, HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PaginatedResponse } from './interfaces/mangas.interface';
 import { MangasService } from './mangas.service';
 import { Manga } from './schemas/manga.schema';
+import { CreateMangaDto } from './dto/create-manga.dto';
 
 const DEFAULT_PAGE_SIZE = 12
 const DEFAULT_CURRENT_PAGE = 1
@@ -41,8 +45,25 @@ export class MangasController {
   }
 
   @Post()
-  async create(@Body() createMangaDto: any): Promise<Manga> {
-    return this.mangasService.create(createMangaDto);
+  @UseInterceptors(FileInterceptor('image'))
+  async create(
+    // @UploadedFile(
+    //   new ParseFilePipe({
+    //     validators: [
+    //       new FileTypeValidator({ fileType: /image\/(jpeg|png|jpg)$/ }),
+    //       new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+    //     ],
+    //   }),
+    // ) file: Express.Multer.File,
+    @Body() createMangaDto: CreateMangaDto
+  ): Promise<Manga> {
+    console.log("🚀 ~ MangasController ~ createMangaDto:", createMangaDto)
+    try {
+      const manga = await this.mangasService.create(createMangaDto);
+      return manga;
+    } catch (error) {
+      throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Post('upload')
