@@ -1,5 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { Injectable,BadRequestException, HttpException, HttpStatus  } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Manga, MangaDocument } from './schemas/manga.schema';
 import mongoose, { Model } from 'mongoose';
@@ -8,6 +13,8 @@ import * as XLSX from 'xlsx';
 import { CreateMangaDto } from './dto/create-manga.dto';
 import axios from 'axios';
 import * as FormData from 'form-data';
+
+type ImageInput = Express.Multer.File | string;
 
 @Injectable()
 export class MangasService {
@@ -19,76 +26,109 @@ export class MangasService {
     if (!file || !file.buffer) {
       throw new BadRequestException('No file uploaded');
     }
-  
+
     const workbook = XLSX.read(file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-  
+
     const data = XLSX.utils.sheet_to_json(worksheet);
-  
+
     const bulkInsertData = data.map((row: any) => {
       const { name, description, status, genres, author, image } = row;
-  
+
       const transformGenres = Array.isArray(genres)
-        ? genres.map(genre => ({ name: genre, _id: new mongoose.Types.ObjectId() }))
+        ? genres.map((genre) => ({
+            name: genre,
+            _id: new mongoose.Types.ObjectId(),
+          }))
         : [];
       const transformImage = { url: image, _id: new mongoose.Types.ObjectId() };
-  
-      return { name, description, status, genres: transformGenres, author, image: transformImage };
+
+      return {
+        name,
+        description,
+        status,
+        genres: transformGenres,
+        author,
+        image: transformImage,
+      };
     });
-  
+
     if (bulkInsertData.length) {
       await this.mangaModel.insertMany(bulkInsertData);
     }
-  
+
     return { message: 'Mangas uploaded and saved successfully' };
   }
 
-  async uploadImageToFreeImageHost(file: Express.Multer.File): Promise<string> {
+  async uploadImageToFreeImageHost(input: ImageInput): Promise<string> {
     const apiKey = process.env.FREEIMAGE_HOST_API_KEY;
     if (!apiKey) {
-      throw new HttpException('FreeImage.host API key not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'FreeImage.host API key not configured',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     const form = new FormData();
-    form.append('source', file.buffer, {
-      filename: file.originalname,
-      contentType: file.mimetype,
-    });
-    console.log('form', form)
-    try {
-      const response = await axios.post('https://freeimage.host/api/1/upload', form, {
-        headers: {
-          ...form.getHeaders(),
-        },
-        params: {
-          key: apiKey,
-          action: 'upload',
-          format: 'json',
-        },
+    if (typeof input === 'string') {
+      form.append('source', input);
+    } else {
+      form.append('source', input.buffer, {
+        filename: input.originalname,
+        contentType: input.mimetype,
       });
+    }
+
+    try {
+      const response = await axios.post(
+        'https://freeimage.host/api/1/upload',
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+          },
+          params: {
+            key: apiKey,
+            action: 'upload',
+            format: 'json',
+          },
+        },
+      );
 
       if (response.data && response.data.status_code === 200) {
         return response.data.image.url;
       } else {
-        console.log('Failed to upload image')
-        throw new HttpException('Failed to upload image', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Failed to upload image',
+          HttpStatus.BAD_REQUEST,
+        );
       }
     } catch (error) {
-      console.log('Image upload failed')
       throw new HttpException('Image upload failed', HttpStatus.BAD_REQUEST);
     }
   }
 
-  async create(createMangaDto: CreateMangaDto, file?: Express.Multer.File): Promise<Manga> {
+  async create(
+    createMangaDto: CreateMangaDto,
+    file?: Express.Multer.File,
+  ): Promise<Manga> {
     let imageUrl = createMangaDto.imageUrl;
+
     if (file) {
       imageUrl = await this.uploadImageToFreeImageHost(file);
+    } else if (imageUrl) {
+      imageUrl = await this.uploadImageToFreeImageHost(imageUrl);
     }
+    console.log('🚀 ~ MangasService ~ create ~ imageUrl:', imageUrl);
+
     if (!imageUrl) {
-      console.log('Image is required either as file or URL')
-      throw new HttpException('Image is required either as file or URL', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Image is required either as file or URL',
+        HttpStatus.BAD_REQUEST,
+      );
     }
+
     const createdManga = new this.mangaModel({ ...createMangaDto, imageUrl });
     return createdManga.save();
   }
@@ -147,8 +187,8 @@ export class MangasService {
     };
   }
 
-  async deleteMany(): Promise<{data: any, timestamp: Date}> {
-    await this.mangaModel.deleteMany()
-    return {data: {}, timestamp: new Date()}
+  async deleteMany(): Promise<{ data: any; timestamp: Date }> {
+    await this.mangaModel.deleteMany();
+    return { data: {}, timestamp: new Date() };
   }
 }

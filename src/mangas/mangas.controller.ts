@@ -9,7 +9,8 @@ import {
   UploadedFile,
   UseInterceptors,
   // ParseFilePipe,
-  // FileTypeValidator, MaxFileSizeValidator,
+  // FileTypeValidator,
+  // MaxFileSizeValidator,
   HttpException, HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -47,19 +48,11 @@ export class MangasController {
   @Post()
   @UseInterceptors(FileInterceptor('image'))
   async create(
-    // @UploadedFile(
-    //   new ParseFilePipe({
-    //     validators: [
-    //       new FileTypeValidator({ fileType: /image\/(jpeg|png|jpg)$/ }),
-    //       new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-    //     ],
-    //   }),
-    // ) file: Express.Multer.File,
-    @Body() createMangaDto: CreateMangaDto
+    @Body() createMangaDto: CreateMangaDto,
+    @UploadedFile() file?: Express.Multer.File,
   ): Promise<Manga> {
-    console.log("🚀 ~ MangasController ~ createMangaDto:", createMangaDto)
     try {
-      const manga = await this.mangasService.create(createMangaDto);
+      const manga = await this.mangasService.create(createMangaDto, file);
       return manga;
     } catch (error) {
       throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
