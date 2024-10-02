@@ -143,7 +143,7 @@ export class MangasService {
     const skip = (currentPage - 1) * pageSize;
     const searchQuery = q
       ? {
-          $or: [{ genre_name: { $regex: q, $options: 'i' } }],
+          $or: [{ name: { $regex: q, $options: 'i' } }],
         }
       : {};
 
