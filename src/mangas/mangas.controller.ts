@@ -12,12 +12,15 @@ import {
   // FileTypeValidator,
   // MaxFileSizeValidator,
   HttpException, HttpStatus,
+  Put,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PaginatedResponse } from './interfaces/mangas.interface';
 import { MangasService } from './mangas.service';
 import { Manga } from './schemas/manga.schema';
 import { CreateMangaDto } from './dto/create-manga.dto';
+import { UpdateMangaDto } from './dto/update-manga.dto';
 
 const DEFAULT_PAGE_SIZE = 12
 const DEFAULT_CURRENT_PAGE = 1
@@ -57,6 +60,16 @@ export class MangasController {
     } catch (error) {
       throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  @Put(':id')
+  @UseInterceptors(FileInterceptor('image'))
+  async update(
+    @Param('id') id: string,
+    @Body() updateMangaDto: UpdateMangaDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<Manga> {
+    return this.mangasService.update(id, updateMangaDto, file);
   }
 
   @Post('upload')

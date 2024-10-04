@@ -52,14 +52,14 @@ export class ChaptersService {
 
   async findAll(mangaId?: string): Promise<Chapter[]> {
     const filter = mangaId ? { manga: new Types.ObjectId(mangaId) } : {};
-    return this.chapterModel.find(filter).sort({ chapterNumber: 1 }).exec();
+    return this.chapterModel.find(filter).populate('manga').populate('author').sort({ chapterNumber: 1 }).exec();
   }
 
   async findOne(id: string): Promise<Chapter> {
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException('Chapter not found');
     }
-    const chapter = await this.chapterModel.findById(id).exec();
+    const chapter = await this.chapterModel.findById(id).populate('manga').populate('author').exec();
     if (!chapter) {
       throw new NotFoundException('Chapter not found');
     }

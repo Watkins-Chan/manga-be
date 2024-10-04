@@ -4,15 +4,17 @@ import {
   BadRequestException,
   HttpException,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Manga, MangaDocument } from './schemas/manga.schema';
-import mongoose, { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PaginatedResponse } from './interfaces/mangas.interface';
 import * as XLSX from 'xlsx';
 import { CreateMangaDto } from './dto/create-manga.dto';
 import axios from 'axios';
 import * as FormData from 'form-data';
+import { UpdateMangaDto } from './dto/update-manga.dto';
 
 type ImageInput = Express.Multer.File | string;
 
@@ -21,45 +23,6 @@ export class MangasService {
   constructor(
     @InjectModel(Manga.name) private mangaModel: Model<MangaDocument>,
   ) {}
-
-  async uploadMangasFromExcel(file: Express.Multer.File): Promise<any> {
-    if (!file || !file.buffer) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-
-    const data = XLSX.utils.sheet_to_json(worksheet);
-
-    const bulkInsertData = data.map((row: any) => {
-      const { name, description, status, genres, author, image } = row;
-
-      const transformGenres = Array.isArray(genres)
-        ? genres.map((genre) => ({
-            name: genre,
-            _id: new mongoose.Types.ObjectId(),
-          }))
-        : [];
-      const transformImage = { url: image, _id: new mongoose.Types.ObjectId() };
-
-      return {
-        name,
-        description,
-        status,
-        genres: transformGenres,
-        author,
-        image: transformImage,
-      };
-    });
-
-    if (bulkInsertData.length) {
-      await this.mangaModel.insertMany(bulkInsertData);
-    }
-
-    return { message: 'Mangas uploaded and saved successfully' };
-  }
 
   async uploadImageToFreeImageHost(input: ImageInput): Promise<string> {
     const apiKey = process.env.FREEIMAGE_HOST_API_KEY;
@@ -79,7 +42,7 @@ export class MangasService {
         contentType: input.mimetype,
       });
     }
-
+    
     try {
       const response = await axios.post(
         'https://freeimage.host/api/1/upload',
@@ -109,28 +72,40 @@ export class MangasService {
     }
   }
 
-  async create(
-    createMangaDto: CreateMangaDto,
-    file?: Express.Multer.File,
-  ): Promise<Manga> {
-    let imageUrl = createMangaDto.imageUrl;
-
-    if (file) {
-      imageUrl = await this.uploadImageToFreeImageHost(file);
-    } else if (imageUrl) {
-      imageUrl = await this.uploadImageToFreeImageHost(imageUrl);
-    }
-    console.log('🚀 ~ MangasService ~ create ~ imageUrl:', imageUrl);
-
-    if (!imageUrl) {
-      throw new HttpException(
-        'Image is required either as file or URL',
-        HttpStatus.BAD_REQUEST,
-      );
+  async uploadMangasFromExcel(file: Express.Multer.File): Promise<any> {
+    if (!file || !file.buffer) {
+      throw new BadRequestException('No file uploaded');
     }
 
-    const createdManga = new this.mangaModel({ ...createMangaDto, imageUrl });
-    return createdManga.save();
+    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    const bulkInsertData = data.map((row: any) => {
+      const { name, description, status, genres, author, image } = row;
+      console.log("🚀 ~ MangasService ~ bulkInsertData ~ author:", author)
+      // let imageUrl = image;
+      // if (image) {
+      //   imageUrl = await this.uploadImageToFreeImageHost(image);
+      // }
+
+      return {
+        name,
+        description,
+        status,
+        genres,
+        author,
+        imageUrl: image,
+      };
+    });
+
+    if (bulkInsertData.length) {
+      await this.mangaModel.insertMany(bulkInsertData);
+    }
+
+    return { message: 'Mangas uploaded and saved successfully' };
   }
 
   async findAll(
@@ -170,6 +145,8 @@ export class MangasService {
 
     const data = await this.mangaModel
       .find(searchQuery)
+      .populate('author')
+      .populate('genres')
       .sort(sortOptions)
       .skip(skip)
       .limit(pageSize)
@@ -185,6 +162,82 @@ export class MangasService {
         _totalPages: totalPages,
       },
     };
+  }
+
+  // Get one manga by id
+  async findOne(id: string): Promise<Manga> {
+    const manga = await this.mangaModel.findById(id).exec();
+    if (!manga) {
+      throw new NotFoundException(`Manga with id ${id} not found`);
+    }
+    return manga;
+  }
+
+  async create(
+    createMangaDto: CreateMangaDto,
+    file?: Express.Multer.File,
+  ): Promise<Manga> {
+    let imageUrl = createMangaDto.imageUrl;
+
+    if (file) {
+      imageUrl = await this.uploadImageToFreeImageHost(file);
+    } else if (imageUrl) {
+      imageUrl = await this.uploadImageToFreeImageHost(imageUrl);
+    }
+
+    if (!imageUrl) {
+      throw new HttpException(
+        'Image is required either as file or URL',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const createdManga = new this.mangaModel({
+      ...createMangaDto,
+      author: new Types.ObjectId(createMangaDto.author),
+      genres: createMangaDto.genres.map((genre) => new Types.ObjectId(genre)),
+      imageUrl
+    });
+    return createdManga.save();
+  }
+
+  async update(
+    id: string,
+    updateMangaDto: UpdateMangaDto,
+    file?: Express.Multer.File,
+  ): Promise<Manga> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Manga not found');
+    }
+
+    const manga = await this.mangaModel.findById(id).exec();
+    if (!manga) {
+      throw new NotFoundException('Manga not found');
+    }
+
+    if (file) {
+      const newImageUrl = await this.uploadImageToFreeImageHost(file);
+      if (newImageUrl) {
+        // await this.deleteImageFromFreeImageHost(manga.imageUrl);
+        updateMangaDto.imageUrl = newImageUrl;
+      }
+    } else if (updateMangaDto.imageUrl) {
+      const newImageUrl = await this.uploadImageToFreeImageHost(updateMangaDto.imageUrl);
+      if (newImageUrl) {
+        // await this.deleteImageFromFreeImageHost(manga.imageUrl);
+        updateMangaDto.imageUrl = newImageUrl;
+      }
+    }
+
+    if (updateMangaDto.imageUrl === undefined && !manga.imageUrl) {
+      throw new HttpException(
+        'Image is required either as file or URL',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    Object.assign(manga, updateMangaDto);
+    return manga.save();
   }
 
   async deleteMany(): Promise<{ data: any; timestamp: Date }> {

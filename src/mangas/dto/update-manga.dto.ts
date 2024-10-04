@@ -1,29 +1,28 @@
-// src/manga/dto/create-manga.dto.ts
 import {
   IsString,
   IsNotEmpty,
   IsOptional,
   IsUrl,
-  IsArray,
   IsMongoId,
 } from 'class-validator';
 
-export class CreateMangaDto {
+export class UpdateMangaDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  @IsOptional()
+  name?: string;
 
   @IsString()
-  description: string;
+  description?: string;
 
   @IsString()
-  status: string;
+  @IsOptional()
+  status?: string;
 
   @IsMongoId()
-  author: string;
+  author?: string;
 
-  @IsArray()
-  genres: string[];
+  genres?: string[];
 
   @IsOptional()
   @IsUrl({}, { message: 'Image URL must be a valid URL' })

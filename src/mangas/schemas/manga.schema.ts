@@ -1,4 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Types, Document } from 'mongoose';
+import { Author } from 'src/authors/schemas/author.schema';
 import { Genre } from 'src/genres/schemas/genre.schema';
 
 export type MangaDocument = Manga &
@@ -18,11 +20,11 @@ export class Manga {
   @Prop()
   status: string;
 
-  @Prop()
-  genres: Genre[];
+  @Prop({ required: true, type: [Types.ObjectId], ref: 'Genre' })
+  genres: Types.ObjectId[] | Genre[];
 
-  @Prop()
-  author: string;
+  @Prop({ type: Types.ObjectId, ref: 'Author' })
+  author: Types.ObjectId | Author;
 
   @Prop()
   imageUrl: string;
