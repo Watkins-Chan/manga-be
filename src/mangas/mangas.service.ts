@@ -42,7 +42,7 @@ export class MangasService {
         contentType: input.mimetype,
       });
     }
-    
+
     try {
       const response = await axios.post(
         'https://freeimage.host/api/1/upload',
@@ -83,21 +83,42 @@ export class MangasService {
 
     const data = XLSX.utils.sheet_to_json(worksheet);
 
+    // random date time
+    const getRandomDateBeforeNow = (existingDates: Set<number>): Date => {
+      const now = new Date();
+      let randomTimestamp: number;
+
+      do {
+        randomTimestamp = Math.floor(Math.random() * now.getTime());
+      } while (existingDates.has(randomTimestamp));
+
+      existingDates.add(randomTimestamp);
+      return new Date(randomTimestamp);
+    };
+
+    const existingDates = new Set<number>();
+
     const bulkInsertData = data.map((row: any) => {
       const { name, description, status, genres, author, image } = row;
-      console.log("🚀 ~ MangasService ~ bulkInsertData ~ author:", author)
-      // let imageUrl = image;
-      // if (image) {
-      //   imageUrl = await this.uploadImageToFreeImageHost(image);
-      // }
+
+      if (typeof author !== 'string' || !Types.ObjectId.isValid(author)) {
+        throw new BadRequestException(`Invalid author ID: ${author}`);
+      }
+      const idAuthor = new Types.ObjectId(author);
+
+      if (typeof genres !== 'string' || !Types.ObjectId.isValid(genres)) {
+        throw new BadRequestException(`Invalid genres ID: ${genres}`);
+      }
+      const idGenres = new Types.ObjectId(genres);
 
       return {
         name,
         description,
         status,
-        genres,
-        author,
+        genres: [idGenres],
+        author: idAuthor,
         imageUrl: image,
+        createdAt: getRandomDateBeforeNow(existingDates),
       };
     });
 
@@ -136,7 +157,7 @@ export class MangasService {
         sortOptions = { createdAt: sortOrder === 'asc' ? 1 : -1 };
         break;
       case 'name':
-        sortOptions = { genre_name: sortOrder === 'asc' ? 1 : -1 };
+        sortOptions = { name: sortOrder === 'asc' ? 1 : -1 };
         break;
       default:
         sortOptions = { createdAt: -1 };
@@ -166,7 +187,11 @@ export class MangasService {
 
   // Get one manga by id
   async findOne(id: string): Promise<Manga> {
-    const manga = await this.mangaModel.findById(id).exec();
+    const manga = await this.mangaModel
+      .findById(id)
+      .populate('author')
+      .populate('genres')
+      .exec();
     if (!manga) {
       throw new NotFoundException(`Manga with id ${id} not found`);
     }
@@ -196,7 +221,7 @@ export class MangasService {
       ...createMangaDto,
       author: new Types.ObjectId(createMangaDto.author),
       genres: createMangaDto.genres.map((genre) => new Types.ObjectId(genre)),
-      imageUrl
+      imageUrl,
     });
     return createdManga.save();
   }
@@ -206,6 +231,7 @@ export class MangasService {
     updateMangaDto: UpdateMangaDto,
     file?: Express.Multer.File,
   ): Promise<Manga> {
+    console.log("🚀 ~ MangasService ~ updateMangaDto:", updateMangaDto)
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException('Manga not found');
     }
@@ -218,13 +244,13 @@ export class MangasService {
     if (file) {
       const newImageUrl = await this.uploadImageToFreeImageHost(file);
       if (newImageUrl) {
-        // await this.deleteImageFromFreeImageHost(manga.imageUrl);
         updateMangaDto.imageUrl = newImageUrl;
       }
     } else if (updateMangaDto.imageUrl) {
-      const newImageUrl = await this.uploadImageToFreeImageHost(updateMangaDto.imageUrl);
+      const newImageUrl = await this.uploadImageToFreeImageHost(
+        updateMangaDto.imageUrl,
+      );
       if (newImageUrl) {
-        // await this.deleteImageFromFreeImageHost(manga.imageUrl);
         updateMangaDto.imageUrl = newImageUrl;
       }
     }

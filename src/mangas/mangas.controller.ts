@@ -48,6 +48,11 @@ export class MangasController {
     );
   }
 
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<Manga> {
+    return this.mangasService.findOne(id);
+  }
+
   @Post()
   @UseInterceptors(FileInterceptor('image'))
   async create(
