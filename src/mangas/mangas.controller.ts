@@ -84,6 +84,11 @@ export class MangasController {
     return result;
   }
 
+  @Delete(':id')
+  async delete(@Param('id') id: string): Promise<Manga> {
+    return this.mangasService.delete(id);
+  }
+
   @Delete()
   async deleteMany() {
     const result = await this.mangasService.deleteMany();

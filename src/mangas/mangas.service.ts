@@ -266,6 +266,14 @@ export class MangasService {
     return manga.save();
   }
 
+  async delete(id: string): Promise<Manga> {
+    const deletedManga = await this.mangaModel.findByIdAndDelete(id).exec();
+    if (!deletedManga) {
+      throw new NotFoundException(`Manga with id ${id} not found`);
+    }
+    return deletedManga;
+  }
+
   async deleteMany(): Promise<{ data: any; timestamp: Date }> {
     await this.mangaModel.deleteMany();
     return { data: {}, timestamp: new Date() };

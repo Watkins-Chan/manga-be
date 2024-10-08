@@ -7,6 +7,7 @@ import {
   IsArray,
   IsMongoId,
 } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class CreateMangaDto {
   @IsString()
@@ -19,11 +20,14 @@ export class CreateMangaDto {
   @IsString()
   status: string;
 
+  @IsNotEmpty()
   @IsMongoId()
-  author: string;
+  author: Types.ObjectId;
 
   @IsArray()
-  genres: string[];
+  @IsNotEmpty({ each: true })
+  @IsMongoId({ each: true })
+  genres: Types.ObjectId[];
 
   @IsOptional()
   @IsUrl({}, { message: 'Image URL must be a valid URL' })

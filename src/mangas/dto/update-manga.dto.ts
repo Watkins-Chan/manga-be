@@ -6,25 +6,26 @@ import {
   IsMongoId,
   IsArray,
 } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class UpdateMangaDto {
   @IsString()
   @IsNotEmpty()
-  @IsOptional()
   name?: string;
 
   @IsString()
   description?: string;
 
   @IsString()
-  @IsOptional()
   status?: string;
 
   @IsMongoId()
-  author?: string;
+  @IsNotEmpty()
+  author?: Types.ObjectId;
 
   @IsArray()
-  genres?: string[];
+  @IsMongoId({ each: true })
+  genres?: Types.ObjectId[];
 
   @IsOptional()
   @IsUrl({}, { message: 'Image URL must be a valid URL' })
