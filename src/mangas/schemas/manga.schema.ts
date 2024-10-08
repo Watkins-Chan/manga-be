@@ -1,7 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { IsOptional } from 'class-validator';
 import { Types, Document } from 'mongoose';
-import { Author } from 'src/authors/schemas/author.schema';
-import { Genre } from 'src/genres/schemas/genre.schema';
+
+export enum MangaStatus {
+  PROGRESSING = 'progressing',
+  COMPLETED = 'completed',
+}
 
 export type MangaDocument = Manga &
   Document & {
@@ -9,24 +13,34 @@ export type MangaDocument = Manga &
     updatedAt: Date;
   };
 
-@Schema({ collection: 'list', timestamps: true })
+@Schema({
+  collection: 'manga',
+  timestamps: true,
+})
 export class Manga {
-  @Prop({ required: true })
+  @Prop({ required: true, trim: true, index: true })
   name: string;
 
   @Prop()
+  @IsOptional()
   description?: string;
 
-  @Prop()
-  status: string;
+  @Prop({ required: true, enum: MangaStatus, index: true })
+  status: MangaStatus;
 
-  @Prop({ required: true, type: [Types.ObjectId], ref: 'Genre' })
-  genres: Types.ObjectId[] | Genre[];
+  @Prop({
+    required: true,
+    type: [Types.ObjectId],
+    ref: 'Genre',
+    default: [],
+    index: true,
+  })
+  genres: Types.ObjectId[];
 
-  @Prop({ type: Types.ObjectId, ref: 'Author' })
-  author: Types.ObjectId | Author;
+  @Prop({ type: Types.ObjectId, ref: 'Author', required: true, index: true })
+  author: Types.ObjectId;
 
-  @Prop()
+  @Prop({ required: true })
   imageUrl: string;
 }
 

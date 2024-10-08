@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsUrl,
   IsMongoId,
+  IsArray,
 } from 'class-validator';
 
 export class UpdateMangaDto {
@@ -22,6 +23,7 @@ export class UpdateMangaDto {
   @IsMongoId()
   author?: string;
 
+  @IsArray()
   genres?: string[];
 
   @IsOptional()
