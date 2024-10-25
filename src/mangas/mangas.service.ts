@@ -12,64 +12,19 @@ import { Model, Types } from 'mongoose';
 import { PaginatedResponse } from './interfaces/mangas.interface';
 import * as XLSX from 'xlsx';
 import { CreateMangaDto } from './dto/create-manga.dto';
-import axios from 'axios';
-import * as FormData from 'form-data';
 import { UpdateMangaDto } from './dto/update-manga.dto';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 
-type ImageInput = Express.Multer.File | string;
 
 @Injectable()
 export class MangasService {
   constructor(
+    private readonly cloudinaryService: CloudinaryService,
     @InjectModel(Manga.name) private mangaModel: Model<MangaDocument>,
   ) {}
 
-  async uploadImageToFreeImageHost(input: ImageInput): Promise<string> {
-    const apiKey = process.env.FREEIMAGE_HOST_API_KEY;
-    if (!apiKey) {
-      throw new HttpException(
-        'FreeImage.host API key not configured',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    const form = new FormData();
-    if (typeof input === 'string') {
-      form.append('source', input);
-    } else {
-      form.append('source', input.buffer, {
-        filename: input.originalname,
-        contentType: input.mimetype,
-      });
-    }
-
-    try {
-      const response = await axios.post(
-        'https://freeimage.host/api/1/upload',
-        form,
-        {
-          headers: {
-            ...form.getHeaders(),
-          },
-          params: {
-            key: apiKey,
-            action: 'upload',
-            format: 'json',
-          },
-        },
-      );
-
-      if (response.data && response.data.status_code === 200) {
-        return response.data.image.url;
-      } else {
-        throw new HttpException(
-          'Failed to upload image',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-    } catch (error) {
-      throw new HttpException('Image upload failed', HttpStatus.BAD_REQUEST);
-    }
+  async uploadImageToCloudinary(input: string | Express.Multer.File): Promise<string> {
+    return this.cloudinaryService.uploadImage(input);
   }
 
   async uploadMangasFromExcel(file: Express.Multer.File): Promise<any> {
@@ -98,29 +53,38 @@ export class MangasService {
 
     const existingDates = new Set<number>();
 
-    const bulkInsertData = data.map((row: any) => {
-      const { name, description, status, genres, author, image } = row;
+    const bulkInsertData = await Promise.all(
+      data.map(async (row: any) => {
+        const { name, description, status, genres, author, image } = row;
 
-      if (typeof author !== 'string' || !Types.ObjectId.isValid(author)) {
-        throw new BadRequestException(`Invalid author ID: ${author}`);
-      }
-      const idAuthor = new Types.ObjectId(author);
+        if (typeof author !== 'string' || !Types.ObjectId.isValid(author)) {
+          throw new BadRequestException(`Invalid author ID: ${author}`);
+        }
+        const idAuthor = new Types.ObjectId(author);
 
-      if (typeof genres !== 'string' || !Types.ObjectId.isValid(genres)) {
-        throw new BadRequestException(`Invalid genres ID: ${genres}`);
-      }
-      const idGenres = new Types.ObjectId(genres);
+        if (typeof genres !== 'string' || !Types.ObjectId.isValid(genres)) {
+          throw new BadRequestException(`Invalid genres ID: ${genres}`);
+        }
+        const idGenres = new Types.ObjectId(genres);
 
-      return {
-        name,
-        description,
-        status,
-        genres: [idGenres],
-        author: idAuthor,
-        imageUrl: image,
-        createdAt: getRandomDateBeforeNow(existingDates),
-      };
-    });
+        let imageUrl: string;
+        if (typeof image === 'string') {
+          imageUrl = await this.uploadImageToCloudinary(image);
+        } else {
+          throw new BadRequestException(`Invalid image format for manga: ${name}`);
+        }
+
+        return {
+          name,
+          description,
+          status,
+          genres: [idGenres],
+          author: idAuthor,
+          imageUrl,
+          createdAt: getRandomDateBeforeNow(existingDates),
+        };
+      }),
+    );
 
     if (bulkInsertData.length) {
       await this.mangaModel.insertMany(bulkInsertData);
@@ -205,9 +169,9 @@ export class MangasService {
     let imageUrl = createMangaDto.imageUrl;
 
     if (file) {
-      imageUrl = await this.uploadImageToFreeImageHost(file);
+      imageUrl = await this.uploadImageToCloudinary(file);
     } else if (imageUrl) {
-      imageUrl = await this.uploadImageToFreeImageHost(imageUrl);
+      imageUrl = await this.uploadImageToCloudinary(imageUrl);
     }
 
     if (!imageUrl) {
@@ -231,7 +195,6 @@ export class MangasService {
     updateMangaDto: UpdateMangaDto,
     file?: Express.Multer.File,
   ): Promise<Manga> {
-    console.log("🚀 ~ MangasService ~ updateMangaDto:", updateMangaDto)
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException('Manga not found');
     }
@@ -242,12 +205,12 @@ export class MangasService {
     }
 
     if (file) {
-      const newImageUrl = await this.uploadImageToFreeImageHost(file);
+      const newImageUrl = await this.uploadImageToCloudinary(file);
       if (newImageUrl) {
         updateMangaDto.imageUrl = newImageUrl;
       }
     } else if (updateMangaDto.imageUrl) {
-      const newImageUrl = await this.uploadImageToFreeImageHost(
+      const newImageUrl = await this.uploadImageToCloudinary(
         updateMangaDto.imageUrl,
       );
       if (newImageUrl) {

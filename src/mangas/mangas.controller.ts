@@ -54,7 +54,15 @@ export class MangasController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', {
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+        return cb(new HttpException('Chỉ cho phép tải lên file ảnh (jpg, jpeg, png)', HttpStatus.BAD_REQUEST), false);
+      }
+      cb(null, true);
+    },
+  }))
   async create(
     @Body() createMangaDto: CreateMangaDto,
     @UploadedFile() file?: Express.Multer.File,
@@ -68,20 +76,45 @@ export class MangasController {
   }
 
   @Put(':id')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', {
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+        return cb(new HttpException('Chỉ cho phép tải lên file ảnh (jpg, jpeg, png)', HttpStatus.BAD_REQUEST), false);
+      }
+      cb(null, true);
+    },
+  }))
   async update(
     @Param('id') id: string,
     @Body() updateMangaDto: UpdateMangaDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<Manga> {
-    return this.mangasService.update(id, updateMangaDto, file);
+    try {
+      const manga = await this.mangasService.update(id, updateMangaDto, file);
+      return manga;
+    } catch (error) {
+      throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/\/(vnd.ms-excel|vnd.openxmlformats-officedocument.spreadsheetml.sheet)$/)) {
+        return cb(new HttpException('Chỉ cho phép tải lên file Excel', HttpStatus.BAD_REQUEST), false);
+      }
+      cb(null, true);
+    },
+  }))
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    const result = await this.mangasService.uploadMangasFromExcel(file);
-    return result;
+    try {
+      const result = await this.mangasService.uploadMangasFromExcel(file);
+      return result;
+    } catch (error) {
+      throw new HttpException(error.message, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Delete(':id')

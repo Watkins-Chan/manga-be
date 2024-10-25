@@ -3,8 +3,8 @@ import { IsOptional } from 'class-validator';
 import { Types, Document } from 'mongoose';
 
 export enum MangaStatus {
-  PROGRESSING = 'progressing',
-  COMPLETED = 'completed',
+  PROGRESSING = 'PROGRESSING',
+  COMPLETED = 'COMPLETED',
 }
 
 export type MangaDocument = Manga &
